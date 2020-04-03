@@ -1,0 +1,26 @@
+{
+    "name": "ibnux/file-sign",
+    "description": "A simple library to digitally sign a file using JWT",
+    "homepage": "https://github.com/ibnux/file-sign",
+    "keywords": [
+        "php",
+        "jwt",
+        "Digital Signature"
+    ],
+    "type": "library",
+    "require": {
+        "firebase/php-jwt": "^5.2"
+    },
+    "license": "BSD-3-Clause",
+    "authors": [
+        {
+            "name": "Ibnu Maksum",
+            "email": "ibnumaksum@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-0": {
+            "Ibnux\\": "src"
+        }
+    }
+}
