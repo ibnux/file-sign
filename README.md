@@ -8,7 +8,7 @@ Installation
 Use composer to manage your dependencies and download PHP-FileSign:
 
 ```bash
-composer require ibnux/filesign
+composer require ibnux/file-sign
 ```
 
 Example RS256 (openssl)
