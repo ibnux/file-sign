@@ -7,7 +7,6 @@
         "jwt",
         "Digital Signature"
     ],
-    "type": "library",
     "require": {
         "firebase/php-jwt": "^5.2"
     },
@@ -19,8 +18,8 @@
         }
     ],
     "autoload": {
-        "psr-0": {
-            "Ibnux\\": "src"
+        "psr-4": {
+            "Ibnux\\": "src/"
         }
     }
 }

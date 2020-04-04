@@ -1,5 +1,4 @@
 <?php
-
 namespace ibnux;
 
 use \Firebase\JWT\JWT;

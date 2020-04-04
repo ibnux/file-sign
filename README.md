@@ -15,7 +15,6 @@ Example RS256 (openssl)
 ----------------------------
 ```php
 <?php
-use Ibnux;
 
 $privateKey = <<<EOD
 -----BEGIN RSA PRIVATE KEY-----
@@ -44,7 +43,7 @@ ehde/zUxo6UvS7UrBQIDAQAB
 -----END PUBLIC KEY-----
 EOD;
 
-$fs = new FileSign('./document.pdf');
+$fs = new Ibnux\FileSign('./document.pdf');
 
 $fs->setLocation('Indonesia', 'Banten', 'Kota Serang');
 $fs->setUserInfo('Ibnu Maksum', 'me@ibnux.net', 'PT. iBNuX');
