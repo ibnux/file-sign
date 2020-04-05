@@ -15,9 +15,9 @@ use \Exception;
  */
 
 class FileSign {
-    private $file;
-    private $name, $email, $company, $note;
-    private $country, $state, $city;
+    private $file = null;
+    private $name = null, $email = null, $company = null, $note = null;
+    private $country = null, $state = null, $city = null;
 
     /**
      * choose which file to sign, full path or relative
@@ -42,7 +42,7 @@ class FileSign {
     /**
      * Set location info
      * @param string $name full name who sign file
-     * @param string $email Company or personal email
+     * @param string $email Company or personal email mandatory
      * @param string $company full company name
      */
     function setUserInfo($name, $email, $company){
@@ -70,6 +70,9 @@ class FileSign {
         if(!file_exists($this->file)){
             return array('status'=>'failed','message'=>'File not found');
         }
+        if(!empty($this->email)){
+            return array('status'=>'failed','message'=>'Email mandatory');
+        }
         $payload = array();
 
         // add if exists
@@ -81,24 +84,34 @@ class FileSign {
         if(!empty($this->city)) $payload['city'] = $this->city;
         if(!empty($this->note)) $payload['note'] = $this->note;
 
+        $payload['file'] = basename($this->file);
+        $payload['contentType'] = mime_content_type($this->file);
+        $payload['size'] = filesize($this->file);
+        $payload['sha256'] = hash_file("sha256",$this->file);
+        $payload['sha1'] = sha1_file($this->file);
+        $payload['md5'] = md5_file($this->file);
+        $payload['crc32'] = hash_file("crc32",$this->file);
+
+        $payload['iat'] = time();
         //Add publicKey if exists
         if($publicKey!=null)
             $payload['key'] = $publicKey;
 
-        $payload['file'] = basename($this->file);
-        $payload['contentType'] = mime_content_type($this->file);
-        $payload['size'] = filesize($this->size);
-        $payload['sha256'] = hash_file("sha256",$this->size);
-        $payload['sha1'] = sha1_file($this->size);
-        $payload['md5'] = md5_file($this->size);
-        $payload['crc32'] = hash_file("crc32",$this->size);
-
-        $payload['iat'] = time();
-        $jwt = JWT::encode($payload, $privateKey , 'RS256');
-        if(!empty($this->email)){
-            file_put_contents($this->file.'.'.$this->email.'.jwt.sign',chunk_split($jwt));
+        $signs = array();
+        if(file_exists($this->file.'.jwt.sign')){
+            $sigs = explode("\n",str_replace("\r",'',file_get_contents($this->file.'.jwt.sign')));
+            foreach($sigs as $sig){
+                //if same as this email, it will not be added to array
+                if(strpos($sig,$this->email)===false){
+                    $signs[] = $sig;
+                }
+            }
         }
-        return array('status'=>'success','data'=>chunk_split($jwt));
+
+        $jwt = JWT::encode($payload, $privateKey , 'RS256');
+        $signs[] = $this->email." ".$jwt;
+        file_put_contents($this->file.'.jwt.sign',implode("\n",$signs));
+        return array('status'=>'success','data'=>$jwt);
     }
 
     /**
