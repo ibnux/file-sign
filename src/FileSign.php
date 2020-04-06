@@ -85,7 +85,7 @@ class FileSign {
         if(!empty($this->note)) $payload['note'] = $this->note;
 
         $payload['file'] = basename($this->file);
-        $payload['contentType'] = mime_content_type($this->file);
+        $payload['content_type'] = mime_content_type($this->file);
         $payload['size'] = filesize($this->file);
         $payload['sha256'] = hash_file("sha256",$this->file);
         $payload['sha1'] = sha1_file($this->file);
@@ -94,56 +94,26 @@ class FileSign {
 
         $payload['iat'] = time();
         //Add publicKey if exists
-        if($publicKey!=null)
+        if($publicKey!=null){
             $payload['key'] = $publicKey;
-
+            $payload['key_sha1'] = sha1($publicKey);
+        }
         $signs = array();
         if(file_exists($this->file.'.jwt.sign')){
             $sigs = explode("\n",str_replace("\r",'',file_get_contents($this->file.'.jwt.sign')));
             foreach($sigs as $sig){
                 //if same as this email, it will not be added to array
-                if(strpos($sig,$this->email)===false){
+                if(strpos($sig,$this->email)===false && !empty(trim($sig))){
                     $signs[] = $sig;
                 }
             }
         }
 
-        $jwt = JWT::encode($payload, $privateKey , 'RS256');
-        $signs[] = $this->email." ".$jwt;
-        file_put_contents($this->file.'.jwt.sign',implode("\n",$signs));
-        return array('status'=>'success','data'=>$jwt);
-    }
-
-    /**
-     * Verify digital signature file
-     * @param string $payload JWT payload
-     * @param string $publicKey Public Key to verify, optional if key exists in payload
-     * @param string $filePath real file pat if different folder or different filename
-     * @return array ['status'=>'success','data'=>''] or ['status'=>'failed','message'=>'invalid key or anything']
-     */
-    function verify($payload, $publicKey = null, $filePath = null){
         try{
-            //get public key from payload if publicKey not provided
-            if($publicKey==null){
-                $temp = explode(".",$payload);
-                $data = json_decode(base64_decode($temp[1]),true);
-                $publicKey = $data['key'];
-            }
-            $res = (array) JWT::decode($payload, $publicKey, array('RS256'));
-            $path = ($filePath!=null && file_exists($filePath))? $filePath : $res['file'];
-            if(!file_exists($path)){
-                return array('status'=>'failed','message'=>'File not found');
-            }
-            if(
-                $res['sha256']==hash_file("sha256",$path) &&
-                $res['sha1']==sha1_file($path) &&
-                $res['md5']==md5_file($path) &&
-                $res['crc32']==hash_file("crc32",$path)
-            ){
-                return array('status'=>'success','verified'=>true,'data'=>$res);
-            }else{
-                return array('status'=>'success','verified'=>false,'data'=>$res);
-            }
+            $jwt = JWT::encode($payload, $privateKey , 'RS256');
+            $signs[] = $this->email." ".$jwt;
+            file_put_contents($this->file.'.jwt.sign',implode("\n",$signs));
+            return array('status'=>'success','data'=>$jwt);
         }catch(Exception $e){
             return array('status'=>'failed','message'=>$e->getMessage());
         }
@@ -151,36 +121,79 @@ class FileSign {
 
     /**
      * Verify digital signature file
-     * @param string $payload JWT payload
-     * @param string $publicKey Public Key to verify, optional if key exists in payload
      * @param string $filePath real file path if different folder or different filename
+     * @param string $publicKeys array by email ['me@ibnux.net'=>'adasdasdsd'] Public Key to verify, optional if key exists in payload
+     * @param string $fileSign path to digital signature if has different name
+     * @return array ['status'=>'success','data'=>''] or ['status'=>'failed','message'=>'invalid key or anything']
+     */
+    function verify($filePath, $publicKeys = array(), $fileSign = null){
+        $payload = "";
+        if($fileSign!=null){
+            $payload = file_get_contents($fileSign);
+        }else{
+            $payload = file_get_contents($filePath.'.jwt.sign');
+        }
+
+        $result = array();
+        $signs = explode("\n",str_replace("\r",'',$payload));
+        foreach($signs as $temp){
+            //sign array 0 is email 1 is jwt
+            $sign = explode(" ",$temp);
+            //get public key from payload if publicKeys not provided
+            if(isset($publicKeys[$sign[0]])){
+                $tmp = explode(".",$sign[1]);
+                $data = json_decode(base64_decode($tmp[1]),true);
+                $publicKey = $data['key'];
+            }else{
+                $publicKey = $publicKeys[$sign[0]];
+            }
+            try{
+                $res = (array) JWT::decode($sign[1], $publicKey, array('RS256'));
+                foreach($res as $k => $v){
+                    $result[$sign[0]][$k] = $v;
+                }
+                $path = ($filePath!=null && file_exists($filePath))? $filePath : $res['file'];
+                if(!file_exists($path)){
+                    $result[$sign[0]]['verified'] = false;
+                    $result[$sign[0]]['error'] = 'File not found';
+                }else{
+                    $result[$sign[0]]['sha256_verified'] = ($res['sha256']==hash_file("sha256",$path));
+                    $result[$sign[0]]['sha1_verified'] = ($res['sha256']==hash_file("sha256",$path));
+                    $result[$sign[0]]['md5_verified'] = ($res['sha256']==hash_file("sha256",$path));
+                    $result[$sign[0]]['crc32_verified'] = ($res['sha256']==hash_file("sha256",$path));
+                    if($result[$sign[0]]['sha256_verified'] && $result[$sign[0]]['sha1_verified'] && 
+                        $result[$sign[0]]['md5_verified'] && $result[$sign[0]]['crc32_verified']){
+                        $result[$sign[0]]['verified'] = true;
+                    }else{
+                        $result[$sign[0]]['verified'] = false;
+                    }
+                }
+            }catch(Exception $e){
+                $result[$sign[0]]['verified'] = false;
+                $result[$sign[0]]['error'] = 'File not found';
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * Verify digital signature file
+     * @param string $filePath real file path if different folder or different filename
+     * @param string $publicKeys array by email ['me@ibnux.net'=>'adasdasdsd'] Public Key to verify, optional if key exists in payload
+     * @param string $fileSign path to digital signature if has different name
      * @return boolean true/false
      */
-    function isVerified($payload, $publicKey = null, $filePath = null){
-        try{
-            //get public key from payload if publicKey not provided
-            if($publicKey==null){
-                $temp = explode(".",$payload);
-                $data = json_decode(base64_decode($temp[1]),true);
-                $publicKey = $data['key'];
-            }
-            $res = (array) JWT::decode($payload, $publicKey, array('RS256'));
-            $path = ($filePath!=null && file_exists($filePath))? $filePath : $res['file'];
-            if(!file_exists($path)){
-                return false;
-            }
-            if(
-                $res['sha256']==hash_file("sha256",$path) &&
-                $res['sha1']==sha1_file($path) &&
-                $res['md5']==md5_file($path) &&
-                $res['crc32']==hash_file("crc32",$path)
-            ){
-                return true;
-            }else{
-                return false;
-            }
-        }catch(Exception $e){
+    function isVerified($filePath, $publicKeys = array(), $fileSign = null){
+        $result = $this->verify($filePath, $publicKeys, $fileSign);
+
+        if(count($result)==0){
             return false;
         }
+
+        foreach($result as $sign)
+            if(!$sign['verified'])
+                return false;
+
+        return true;
     }
 }

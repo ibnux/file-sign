@@ -15,6 +15,8 @@ Example RS256 (openssl)
 ----------------------------
 ```php
 <?php
+require 'vendor/autoload.php';
+use Ibnux\FileSign;
 
 $privateKey = <<<EOD
 -----BEGIN RSA PRIVATE KEY-----
@@ -43,32 +45,31 @@ ehde/zUxo6UvS7UrBQIDAQAB
 -----END PUBLIC KEY-----
 EOD;
 
-$fs = new Ibnux\FileSign('./document.pdf');
+$file = './document.pdf';
+
+$fs = new FileSign($file);
 
 $fs->setLocation('Indonesia', 'Banten', 'Kota Serang');
 $fs->setUserInfo('Ibnu Maksum', 'me@ibnux.net', 'PT. iBNuX');
 $fs->setNote('This File is a proof that alien exists');
-
+//this will create new File document.pdf.jwt.sign
 $fs->sign($privateKey, $publicKey);
-//this will create new File document.pdf.me@ibnux.net.jwt.sign
 
+$fs->setUserInfo('Maksum', 'maksum@ibnux.net', 'PT. maksum');
+$fs->setNote('Yes This File is a proof that alien exists');
+//this will append sign to document.pdf.jwt.sign
+$fs->sign($privateKey, $publicKey);
 
-$payload = file_get_contents('./document.pdf.me@ibnux.net.jwt.sign');
-if(new FileSign()->isVerified($payload)){
-    echo "FILE VERIFIED";
+print_r($fs->verify($file))
+
+if($fs->isVerified($file)){
+    echo "\nFILE VERIFIED\n";
 }else{
-    echo "SIGN IS NOT VALID for this file, file corrupted or tampered ";
+    echo "\nSIGN IS NOT VALID for this file, file corrupted or tampered\n";
 }
 
 
 ```
-
-Changelog
----------
-
-#### 0.0.1 / 2017-04-03
-
-- First Release
 
 New Lines in private keys
 -----
