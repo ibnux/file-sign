@@ -122,17 +122,25 @@ class FileSign {
     /**
      * Verify digital signature file
      * @param string $filePath real file path if different folder or different filename
-     * @param string $publicKeys array by email ['me@ibnux.net'=>'adasdasdsd'] Public Key to verify, optional if key exists in payload
-     * @param string $fileSign path to digital signature if has different name
+     * @param array $publicKeys array by email ['me@ibnux.net'=>'adasdasdsd'] Public Key to verify, optional if key exists in payload
+     * @param string $fileSign path to digital signature if has different name or string sign
      * @return array ['status'=>'success','data'=>''] or ['status'=>'failed','message'=>'invalid key or anything']
      */
     function verify($filePath, $publicKeys = array(), $fileSign = null){
         $payload = "";
         if($fileSign!=null){
-            $payload = file_get_contents($fileSign);
+            if(file_exists($fileSign))
+                $payload = file_get_contents($fileSign);
+            else{
+                // if not file then it is a payload
+                $payload = $fileSign;
+            }
         }else{
             $payload = file_get_contents($filePath.'.jwt.sign');
         }
+
+        if($publicKeys==null)
+            $publicKeys = array();
 
         $result = array();
         $signs = explode("\n",str_replace("\r",'',$payload));
