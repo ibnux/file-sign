@@ -146,37 +146,40 @@ class FileSign {
         foreach($signs as $temp){
             //sign array 0 is email 1 is jwt
             $sign = explode(" ",$temp);
-            //get public key from payload if publicKeys not provided
-            if(isset($publicKeys[$sign[0]])){
-                $tmp = explode(".",$sign[1]);
-                $data = json_decode(base64_decode($tmp[1]),true);
-                $publicKey = $data['key'];
-            }else{
-                $publicKey = $publicKeys[$sign[0]];
-            }
-            try{
-                $res = (array) JWT::decode($sign[1], $publicKey, array('RS256'));
-                foreach($res as $k => $v){
-                    $result[$sign[0]][$k] = $v;
+            //if it email then process
+            if (filter_var($sign[0], FILTER_VALIDATE_EMAIL)) {
+                //get public key from payload if publicKeys not provided
+                if(isset($publicKeys[$sign[0]])){
+                    $tmp = explode(".",$sign[1]);
+                    $data = json_decode(base64_decode($tmp[1]),true);
+                    $publicKey = $data['key'];
+                }else{
+                    $publicKey = $publicKeys[$sign[0]];
                 }
-                $path = ($filePath!=null && file_exists($filePath))? $filePath : $res['file'];
-                if(!file_exists($path)){
+                try{
+                    $res = (array) JWT::decode($sign[1], $publicKey, array('RS256'));
+                    foreach($res as $k => $v){
+                        $result[$sign[0]][$k] = $v;
+                    }
+                    $path = ($filePath!=null && file_exists($filePath))? $filePath : $res['file'];
+                    if(!file_exists($path)){
+                        $result[$sign[0]]['verified'] = false;
+                        $result[$sign[0]]['error'] = 'File not found';
+                    }else{
+                        $result[$sign[0]]['sha256_verified'] = ($res['sha256']==hash_file("sha256",$path));
+                        $result[$sign[0]]['sha1_verified'] = ($res['sha1']==sha1_file($path));
+                        $result[$sign[0]]['md5_verified'] = ($res['md5']==md5_file($path));
+                        if($result[$sign[0]]['sha256_verified'] && $result[$sign[0]]['sha1_verified'] && 
+                            $result[$sign[0]]['md5_verified']){
+                            $result[$sign[0]]['verified'] = true;
+                        }else{
+                            $result[$sign[0]]['verified'] = false;
+                        }
+                    }
+                }catch(Exception $e){
                     $result[$sign[0]]['verified'] = false;
                     $result[$sign[0]]['error'] = 'File not found';
-                }else{
-                    $result[$sign[0]]['sha256_verified'] = ($res['sha256']==hash_file("sha256",$path));
-                    $result[$sign[0]]['sha1_verified'] = ($res['sha1']==sha1_file($path));
-                    $result[$sign[0]]['md5_verified'] = ($res['md5']==md5_file($path));
-                    if($result[$sign[0]]['sha256_verified'] && $result[$sign[0]]['sha1_verified'] && 
-                        $result[$sign[0]]['md5_verified']){
-                        $result[$sign[0]]['verified'] = true;
-                    }else{
-                        $result[$sign[0]]['verified'] = false;
-                    }
                 }
-            }catch(Exception $e){
-                $result[$sign[0]]['verified'] = false;
-                $result[$sign[0]]['error'] = 'File not found';
             }
         }
         return $result;
