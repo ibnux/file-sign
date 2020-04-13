@@ -90,7 +90,6 @@ class FileSign {
         $payload['sha256'] = hash_file("sha256",$this->file);
         $payload['sha1'] = sha1_file($this->file);
         $payload['md5'] = md5_file($this->file);
-        $payload['crc32'] = hash_file("crc32",$this->file);
 
         $payload['iat'] = time();
         //Add publicKey if exists
@@ -166,11 +165,10 @@ class FileSign {
                     $result[$sign[0]]['error'] = 'File not found';
                 }else{
                     $result[$sign[0]]['sha256_verified'] = ($res['sha256']==hash_file("sha256",$path));
-                    $result[$sign[0]]['sha1_verified'] = ($res['sha256']==hash_file("sha256",$path));
-                    $result[$sign[0]]['md5_verified'] = ($res['sha256']==hash_file("sha256",$path));
-                    $result[$sign[0]]['crc32_verified'] = ($res['sha256']==hash_file("sha256",$path));
+                    $result[$sign[0]]['sha1_verified'] = ($res['sha1']==sha1_file($path));
+                    $result[$sign[0]]['md5_verified'] = ($res['md5']==md5_file($path));
                     if($result[$sign[0]]['sha256_verified'] && $result[$sign[0]]['sha1_verified'] && 
-                        $result[$sign[0]]['md5_verified'] && $result[$sign[0]]['crc32_verified']){
+                        $result[$sign[0]]['md5_verified']){
                         $result[$sign[0]]['verified'] = true;
                     }else{
                         $result[$sign[0]]['verified'] = false;
