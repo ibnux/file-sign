@@ -18,6 +18,7 @@ class FileSign {
     private $file = null;
     private $name = null, $email = null, $company = null, $note = null;
     private $country = null, $state = null, $city = null;
+    private $customData = array();
 
     /**
      * choose which file to sign, full path or relative
@@ -60,6 +61,16 @@ class FileSign {
     }
 
     /**
+     * add custom data
+     * @param string key
+     * @param string value
+     */
+
+    function add($key,$value){
+        $this->customData[$key] = $value;
+    }
+
+    /**
      * Add digital Signature to file
      * it will create new file beside real file
      * @param string/array $privateKey String|array if using password, use array [key,password]
@@ -83,6 +94,10 @@ class FileSign {
         if(!empty($this->state)) $payload['state'] = $this->state;
         if(!empty($this->city)) $payload['city'] = $this->city;
         if(!empty($this->note)) $payload['note'] = $this->note;
+
+        foreach($this->customData as $key => $value){
+            $payload[$key] = $value;
+        }
 
         $payload['file'] = basename($this->file);
         $payload['content_type'] = mime_content_type($this->file);
