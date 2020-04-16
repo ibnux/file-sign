@@ -131,7 +131,7 @@ class FileSign {
             if($createFile)
                 file_put_contents($this->file.'.jwt.sign',implode("\n",$signs));
             return array('status'=>'success','data'=>$jwt,'payload'=>$payload);
-        }catch(Exception $e){
+        }catch(\Exception $e){
             return array('status'=>'failed','message'=>$e->getMessage());
         }
     }
@@ -194,9 +194,9 @@ class FileSign {
                             $result[$sign[0]]['verified'] = false;
                         }
                     }
-                }catch(Exception $e){
+                }catch(\Exception $e){
                     $result[$sign[0]]['verified'] = false;
-                    $result[$sign[0]]['error'] = 'File not found';
+                    $result[$sign[0]]['error'] = 'Signature invalid, '.$e->getMessage();
                 }
             }
         }
