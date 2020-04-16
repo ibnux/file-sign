@@ -19,6 +19,7 @@ class FileSign {
     private $name = null, $email = null, $company = null, $note = null;
     private $country = null, $state = null, $city = null;
     private $customData = array();
+    private $realname=null;
 
     /**
      * choose which file to sign, full path or relative
@@ -54,10 +55,18 @@ class FileSign {
 
     /**
      * Set note
-     * @param note note about signing
+     * @param String note about signing
      */
     function setNote($note){
         $this->note = $note;
+    }
+
+    /**
+     * Set real filename, sometimes, filename can change
+     * @param String realname of file
+     */
+    function setRealname($realname){
+        $this->realname = $realname;
     }
 
     /**
@@ -100,7 +109,7 @@ class FileSign {
             $payload[$key] = $value;
         }
 
-        $payload['file'] = basename($this->file);
+        $payload['file'] = (empty($realname))?basename($this->file):$this->realname;
         $payload['content_type'] = mime_content_type($this->file);
         $payload['size'] = filesize($this->file);
         $payload['sha256'] = hash_file("sha256",$this->file);
