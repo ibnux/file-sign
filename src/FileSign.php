@@ -109,7 +109,7 @@ class FileSign {
             $payload[$key] = $value;
         }
 
-        $payload['file'] = (empty($realname))?basename($this->file):$this->realname;
+        $payload['file'] = (empty($this->realname)) ? basename($this->file):$this->realname;
         $payload['content_type'] = mime_content_type($this->file);
         $payload['size'] = filesize($this->file);
         $payload['sha256'] = hash_file("sha256",$this->file);
