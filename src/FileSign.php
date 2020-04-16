@@ -155,19 +155,19 @@ class FileSign {
         }else{
             $payload = file_get_contents($filePath.'.jwt.sign');
         }
-
         if($publicKeys==null)
             $publicKeys = array();
 
         $result = array();
         $signs = explode("\n",str_replace("\r",'',$payload));
+
         foreach($signs as $temp){
             //sign array 0 is email 1 is jwt
             $sign = explode(" ",$temp);
             //if it email then process
             if (filter_var($sign[0], FILTER_VALIDATE_EMAIL)) {
                 //get public key from payload if publicKeys not provided
-                if(isset($publicKeys[$sign[0]])){
+                if(!isset($publicKeys[$sign[0]])){
                     $tmp = explode(".",$sign[1]);
                     $data = json_decode(base64_decode($tmp[1]),true);
                     $publicKey = $data['key'];
