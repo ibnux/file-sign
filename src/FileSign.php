@@ -75,13 +75,14 @@ class FileSign {
      * it will create new file beside real file
      * @param string/array $privateKey String|array if using password, use array [key,password]
      * @param string $publicKey Optional String it will be added to payload if exists
+     * @param boolean $createFile Optional if false, will not create file
      * @return array ['status'=>'success','data'=>''] or ['status'=>'failed','message'=>'invalid key or anything']
      */
-    function sign($privateKey, $publicKey=null){
+    function sign($privateKey, $publicKey=null, $createFile=true){
         if(!file_exists($this->file)){
             return array('status'=>'failed','message'=>'File not found');
         }
-        if(!empty($this->email)){
+        if(empty($this->email)){
             return array('status'=>'failed','message'=>'Email mandatory');
         }
         $payload = array();
@@ -126,8 +127,10 @@ class FileSign {
         try{
             $jwt = JWT::encode($payload, $privateKey , 'RS256');
             $signs[] = $this->email." ".$jwt;
-            file_put_contents($this->file.'.jwt.sign',implode("\n",$signs));
-            return array('status'=>'success','data'=>$jwt);
+            $signs = array_filter($signs);
+            if($createFile)
+                file_put_contents($this->file.'.jwt.sign',implode("\n",$signs));
+            return array('status'=>'success','data'=>$jwt,'payload'=>$payload);
         }catch(Exception $e){
             return array('status'=>'failed','message'=>$e->getMessage());
         }
